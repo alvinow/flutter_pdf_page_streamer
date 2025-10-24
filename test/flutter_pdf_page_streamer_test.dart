@@ -1,0 +1,66 @@
+import 'package:flutter_test/flutter_test.dart';
+
+// Import only the models to avoid web dependencies in tests
+import 'package:flutter_pdf_page_streamer/src/models/pdf_config.dart';
+import 'package:flutter_pdf_page_streamer/src/models/pdf_events.dart';
+
+void main() {
+  group('PdfConfig Tests', () {
+    test('should create development configuration with default values', () {
+      final config = PdfConfig.development(
+        pdfId: 'test-document',
+      );
+
+      expect(config.pdfId, 'test-document');
+      expect(config.backendUrl, 'http://localhost:3000/api/pdf');
+      expect(config.cdnConfig.baseUrl, 'http://localhost:3002');
+      expect(config.initialPage, 1);
+      expect(config.initialZoom, 1.0);
+    });
+
+    test('should create production configuration', () {
+      final config = PdfConfig.production(
+        pdfId: 'prod-document',
+        backendUrl: 'https://api.example.com/pdf',
+        cdnUrl: 'https://cdn.example.com',
+      );
+
+      expect(config.pdfId, 'prod-document');
+      expect(config.backendUrl, 'https://api.example.com/pdf');
+      expect(config.cdnConfig.baseUrl, 'https://cdn.example.com');
+    });
+
+    // TODO: Add validation tests when validation is implemented
+    // test('should validate PDF ID', () {
+    //   expect(
+    //     () => PdfConfig.development(pdfId: ''),
+    //     throwsArgumentError,
+    //   );
+    // });
+  });
+
+  group('PdfEvent Tests', () {
+    test('should create PdfLoadedEvent with timestamp', () {
+      final event = PdfLoadedEvent(
+        pdfId: 'test-doc',
+        pageCount: 10,
+        title: 'Test Document',
+      );
+
+      expect(event.pdfId, 'test-doc');
+      expect(event.pageCount, 10);
+      expect(event.title, 'Test Document');
+      expect(event.timestamp, isA<DateTime>());
+    });
+
+    test('should create PageChangedEvent', () {
+      final event = PageChangedEvent(
+        currentPage: 5,
+        totalPages: 10,
+      );
+
+      expect(event.currentPage, 5);
+      expect(event.totalPages, 10);
+    });
+  });
+}

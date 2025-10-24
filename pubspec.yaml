@@ -1,0 +1,33 @@
+name: flutter_pdf_page_streamer
+description: "A Flutter package for page-based PDF streaming, providing high-performance PDF viewing for large documents via streaming individual pages instead of loading entire files."
+version: 0.1.0
+homepage: https://github.com/your-org/flutter_pdf_page_streamer
+repository: https://github.com/your-org/flutter_pdf_page_streamer
+documentation: https://github.com/your-org/flutter_pdf_page_streamer#readme
+
+environment:
+  sdk: ^3.0.0
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  http: ^1.0.0
+  meta: ^1.10.0
+
+platforms:
+  web:
+
+flutter:
+  plugin:
+    platforms:
+      web:
+        pluginClass: PdfPageStreamerWebPlugin
+        fileName: src/bridge/web_implementation.dart
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0

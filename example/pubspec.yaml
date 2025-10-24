@@ -1,0 +1,22 @@
+name: flutter_pdf_page_streamer_example
+description: Example application demonstrating Flutter PDF Page Streamer package
+version: 1.0.0+1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.0.0
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_pdf_page_streamer:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
