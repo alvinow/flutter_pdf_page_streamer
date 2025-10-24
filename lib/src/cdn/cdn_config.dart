@@ -36,11 +36,18 @@ class CdnConfig {
 
   /// Get the full URL for a specific asset
   String getAssetUrl(String assetPath) {
+    // For local assets and development, load assets directly without version path
+    if (version == 'local' || version == 'dev') {
+      return '$baseUrl/$assetPath';
+    }
     return '$baseUrl/$version/$assetPath';
   }
 
   /// Get fallback URLs for a specific asset
   List<String> getFallbackUrls(String assetPath) {
+    if (version == 'local' || version == 'dev') {
+      return fallbackUrls.map((url) => '$url/$assetPath').toList();
+    }
     return fallbackUrls.map((url) => '$url/$version/$assetPath').toList();
   }
 

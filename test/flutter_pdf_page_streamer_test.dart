@@ -44,6 +44,52 @@ void main() {
       expect(config.debugMode, false);
     });
 
+    test('should generate correct asset URLs for local configuration', () {
+      final config = PdfConfig.local(
+        pdfId: 'test-doc',
+        backendUrl: 'https://api.example.com/pdf',
+        assetsPath: 'assets',
+      );
+
+      // Test CSS asset URL
+      final cssUrl = config.cdnConfig.getAssetUrl('pdf-viewer.css');
+      expect(cssUrl, 'assets/pdf-viewer.css'); // No version path for local
+
+      // Test JS asset URL
+      final jsUrl = config.cdnConfig.getAssetUrl('pdf-viewer.js');
+      expect(jsUrl, 'assets/pdf-viewer.js'); // No version path for local
+    });
+
+    test('should generate correct asset URLs for development configuration', () {
+      final config = PdfConfig.development(
+        pdfId: 'test-doc',
+      );
+
+      // Test CSS asset URL (no version path for development)
+      final cssUrl = config.cdnConfig.getAssetUrl('pdf-viewer.css');
+      expect(cssUrl, 'http://localhost:3002/pdf-viewer.css');
+
+      // Test JS asset URL (no version path for development)
+      final jsUrl = config.cdnConfig.getAssetUrl('pdf-viewer.js');
+      expect(jsUrl, 'http://localhost:3002/pdf-viewer.js');
+    });
+
+    test('should generate correct asset URLs for production configuration', () {
+      final config = PdfConfig.production(
+        pdfId: 'test-doc',
+        backendUrl: 'https://api.example.com/pdf',
+        cdnUrl: 'https://cdn.example.com',
+      );
+
+      // Test CSS asset URL (with version path for production)
+      final cssUrl = config.cdnConfig.getAssetUrl('pdf-viewer.css');
+      expect(cssUrl, 'https://cdn.example.com/latest/pdf-viewer.css');
+
+      // Test JS asset URL (with version path for production)
+      final jsUrl = config.cdnConfig.getAssetUrl('pdf-viewer.js');
+      expect(jsUrl, 'https://cdn.example.com/latest/pdf-viewer.js');
+    });
+
     // TODO: Add validation tests when validation is implemented
     // test('should validate PDF ID', () {
     //   expect(
