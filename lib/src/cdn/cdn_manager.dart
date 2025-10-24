@@ -205,6 +205,15 @@ class CdnManager {
 
                     console.log('✅ window.initPdfViewer found, calling with pdfId:', this.pdfId);
 
+                    // Configure the API client with correct base URL first
+                    if (window.getPdfApiClient) {
+                        const apiClient = window.getPdfApiClient();
+                        // Remove /api/pdf suffix since pdfApiClient adds it automatically
+                        const baseUrl = this.backendUrl.replace('/api/pdf', '');
+                        console.log('🔧 Setting API base URL to:', baseUrl);
+                        apiClient.updateBaseUrl(baseUrl + '/api/pdf');
+                    }
+
                     // Use the global function that's exported by html_core
                     await window.initPdfViewer(this.pdfId);
 
