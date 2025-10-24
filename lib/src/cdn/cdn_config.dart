@@ -73,6 +73,22 @@ class CdnConfig {
     );
   }
 
+  /// Create a configuration for local assets (same directory as index.html)
+  /// This is useful when you want to bundle the PDF viewer assets with your Flutter web app
+  factory CdnConfig.local({
+    String assetsPath = 'assets',
+    String version = 'local',
+  }) {
+    return CdnConfig(
+      baseUrl: assetsPath,
+      version: version,
+      fallbackUrls: const [],
+      timeout: const Duration(seconds: 10),
+      retryAttempts: 1,
+      retryDelay: const Duration(seconds: 1),
+    );
+  }
+
   @override
   String toString() => 'CdnConfig(baseUrl: $baseUrl, version: $version)';
 

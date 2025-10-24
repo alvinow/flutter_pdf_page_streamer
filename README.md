@@ -125,6 +125,60 @@ final config = PdfConfig.production(
 );
 ```
 
+### **Local Assets Configuration**
+
+For applications that want to bundle PDF viewer assets with the Flutter web app (same directory as index.html):
+
+```dart
+PdfStreamerWidget(
+  config: PdfConfig.local(
+    pdfId: 'my-document',
+    backendUrl: 'https://api.myapp.com/pdf',
+    assetsPath: 'assets', // Relative to index.html
+    debugMode: false,
+  ),
+  // ... event listeners
+)
+```
+
+**Directory Structure for Local Assets:**
+```
+web/
+├── index.html
+├── assets/
+│   ├── pdf-viewer.css
+│   └── pdf-viewer.js
+└── ... other web files
+```
+
+This approach is perfect when you want to:
+- 📦 Bundle assets with your app for offline usage
+- 🔒 Avoid external CDN dependencies
+- ⚡ Ensure fastest possible asset loading
+- 🛠️ Have full control over asset versions
+
+**Setup Steps for Local Assets:**
+
+1. **Copy PDF viewer files to your Flutter web directory:**
+   ```bash
+   # Copy from html_core build output
+   cp html_core/dist/pdf-viewer.css web/assets/
+   cp html_core/dist/pdf-viewer.js web/assets/
+   ```
+
+2. **Use the local configuration in your Flutter app:**
+   ```dart
+   PdfStreamerWidget(
+     config: PdfConfig.local(
+       pdfId: 'my-document',
+       backendUrl: 'https://api.myapp.com/pdf',
+       assetsPath: 'assets', // Points to web/assets/
+     ),
+   )
+   ```
+
+3. **Deploy with your Flutter web app** - assets are automatically included!
+
 ### **Configuration Options**
 
 | Option | Description | Default |
@@ -473,7 +527,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/flutter_pdf_page_streamer.git
+git clone https://github.com/alvinow/flutter_pdf_page_streamer.git
 
 # Install dependencies
 cd flutter_pdf_page_streamer

@@ -120,6 +120,32 @@ class PdfConfig {
     );
   }
 
+  /// Create a configuration for local assets (PDF viewer files in same directory as index.html)
+  /// Perfect for bundling assets with your Flutter web app
+  factory PdfConfig.local({
+    required String pdfId,
+    required String backendUrl,
+    String assetsPath = 'assets',
+    int initialPage = 1,
+    double initialZoom = 1.0,
+    bool debugMode = false,
+  }) {
+    return PdfConfig(
+      pdfId: pdfId,
+      backendUrl: backendUrl,
+      cdnConfig: CdnConfig.local(
+        assetsPath: assetsPath,
+      ),
+      initialPage: initialPage,
+      initialZoom: initialZoom,
+      enablePagePreloading: true,
+      preloadBuffer: 2,
+      maxConcurrentPageLoads: 3,
+      cacheSize: 50,
+      debugMode: debugMode,
+    );
+  }
+
   /// Copy with method for configuration updates
   PdfConfig copyWith({
     String? pdfId,

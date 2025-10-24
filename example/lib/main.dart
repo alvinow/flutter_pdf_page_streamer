@@ -625,3 +625,72 @@ class _PerformanceDemoExampleState extends State<PerformanceDemoExample> {
     );
   }
 }
+
+/// Example demonstrating PDF viewer with local assets
+/// This shows how to use PDF viewer assets bundled with your Flutter web app
+class LocalAssetsPdfViewerExample extends StatelessWidget {
+  const LocalAssetsPdfViewerExample({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Local Assets PDF Viewer'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.blue[50],
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '📁 Local Assets Configuration',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'This example uses PDF viewer assets stored locally in your Flutter web app directory.',
+                ),
+                Text(
+                  'Assets path: web/assets/ (same directory as index.html)',
+                  style: TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: PdfStreamerWidget(
+              config: PdfConfig.local(
+                pdfId: 'local-sample',
+                backendUrl: 'http://localhost:3000/api/pdf',
+                assetsPath: 'assets', // Relative to index.html
+                debugMode: true,
+              ),
+              eventListeners: PdfEventListeners(
+                onPdfLoaded: (event) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('PDF loaded: ${event.pageCount} pages'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                onError: (event) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${event.message}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

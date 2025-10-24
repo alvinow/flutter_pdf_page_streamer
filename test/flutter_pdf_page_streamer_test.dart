@@ -30,6 +30,20 @@ void main() {
       expect(config.cdnConfig.baseUrl, 'https://cdn.example.com');
     });
 
+    test('should create local assets configuration', () {
+      final config = PdfConfig.local(
+        pdfId: 'local-document',
+        backendUrl: 'https://api.example.com/pdf',
+        assetsPath: 'assets',
+      );
+
+      expect(config.pdfId, 'local-document');
+      expect(config.backendUrl, 'https://api.example.com/pdf');
+      expect(config.cdnConfig.baseUrl, 'assets');
+      expect(config.cdnConfig.version, 'local');
+      expect(config.debugMode, false);
+    });
+
     // TODO: Add validation tests when validation is implemented
     // test('should validate PDF ID', () {
     //   expect(
