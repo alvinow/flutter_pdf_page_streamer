@@ -3,6 +3,7 @@ import 'dart:html' as html;
 import 'dart:js_util' as js_util;
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'pdf_bridge.dart';
 
 /// Web platform implementation for PDF page streaming
 ///
@@ -23,18 +24,20 @@ class PdfPageStreamerWebPlugin {
     final PdfPageStreamerWebPlugin instance = PdfPageStreamerWebPlugin._();
     methodChannel.setMethodCallHandler(instance._handleMethodCall);
 
+    // Note: EventChannel not registered for web - we use postMessage instead
+
     // Initialize the plugin instance
     instance._initialize();
   }
 
   PdfPageStreamerWebPlugin._();
 
-  /// Stream controller for PDF viewer events
-  StreamController<Map<String, dynamic>>? _eventController;
+  // Note: _eventController removed - events go directly to PdfBridge.addEvent()
 
   /// Reference to the embedded iframe containing the PDF viewer
   html.IFrameElement? _pdfViewerFrame;
 
+  // Note: StreamHandler methods removed - we use postMessage instead of EventChannel
 
   /// Message handler for method channel calls
   Future<dynamic> _handleMethodCall(MethodCall call) async {
@@ -43,13 +46,13 @@ class PdfPageStreamerWebPlugin {
         return _initialize();
 
       case 'loadPdf':
-        return _loadPdf(call.arguments as Map<String, dynamic>);
+        return _loadPdf(Map<String, dynamic>.from(call.arguments as Map));
 
       case 'setPage':
-        return _setPage(call.arguments as Map<String, dynamic>);
+        return _setPage(Map<String, dynamic>.from(call.arguments as Map));
 
       case 'setZoom':
-        return _setZoom(call.arguments as Map<String, dynamic>);
+        return _setZoom(Map<String, dynamic>.from(call.arguments as Map));
 
       case 'getCurrentPage':
         return _getCurrentPage();
@@ -153,8 +156,8 @@ class PdfPageStreamerWebPlugin {
     if (event is html.MessageEvent) {
       final data = event.data;
       if (data is Map<String, dynamic>) {
-        // Forward PDF viewer events to Flutter via event channel
-        _eventController?.add(data);
+        // Forward PDF viewer events to Flutter via PdfBridge
+        PdfBridge.addEvent(data);
       }
     }
   }

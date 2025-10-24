@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
 
@@ -13,10 +14,8 @@ class PdfBridge {
     'flutter_pdf_page_streamer/methods',
   );
 
-  /// Event channel for receiving real-time events from the PDF viewer
-  static const EventChannel _eventChannel = EventChannel(
-    'flutter_pdf_page_streamer/events',
-  );
+  /// Event channel for receiving real-time events from the PDF viewer (lazy initialization)
+  static EventChannel? _eventChannel;
 
   /// Stream controller for PDF viewer events
   static StreamController<Map<String, dynamic>>? _eventController;
@@ -36,23 +35,38 @@ class PdfBridge {
       // Initialize method channel communication
       await _methodChannel.invokeMethod('initialize');
 
-      // Set up event channel listener
-      _eventChannel.receiveBroadcastStream().listen(
-        (dynamic event) {
-          if (event is Map<String, dynamic>) {
-            _eventController?.add(event);
-          }
-        },
-        onError: (dynamic error) {
-          _eventController?.addError(error);
-        },
-      );
+      // Set up event channel listener (skip for web due to registration issues)
+      if (!kIsWeb) {
+        // Create EventChannel only for non-web platforms
+        _eventChannel = const EventChannel('flutter_pdf_page_streamer/events');
+        _eventChannel!.receiveBroadcastStream().listen(
+          (dynamic event) {
+            if (event is Map<String, dynamic>) {
+              _eventController?.add(event);
+            }
+          },
+          onError: (dynamic error) {
+            _eventController?.addError(error);
+          },
+        );
+      } else {
+        // For web, we'll handle events differently through postMessage
+        // The web implementation will directly add events to _eventController
+        if (kDebugMode) {
+          print('PDF Bridge: Initialized for web platform (EventChannel skipped)');
+        }
+      }
     } on PlatformException catch (e) {
       throw PdfBridgeException(
         'Failed to initialize PDF bridge: ${e.message}',
         e.code,
       );
     }
+  }
+
+  /// Add event to the stream (used by web implementation)
+  static void addEvent(Map<String, dynamic> event) {
+    _eventController?.add(event);
   }
 
   /// Load a PDF for page-based streaming
