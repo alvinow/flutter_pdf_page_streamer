@@ -178,7 +178,7 @@ class CdnManager {
             constructor() {
                 this.pdfId = '$pdfId';
                 this.backendUrl = '$backendUrl';
-                this.viewer = null;
+                this.viewerEngine = null;
                 this.isInitialized = false;
 
                 this.setupMessageListener();
@@ -196,51 +196,93 @@ class CdnManager {
 
             async initializePdfViewer() {
                 try {
-                    // Initialize the PDF viewer with page-based streaming
-                    this.viewer = new PdfPageStreamer({
-                        container: document.getElementById('pdf-viewer'),
-                        pdfId: this.pdfId,
-                        backendUrl: this.backendUrl,
-                        streamingMode: 'page-based',
-                        onLoad: () => this.onPdfLoaded(),
-                        onPageChange: (page, total) => this.onPageChanged(page, total),
-                        onZoomChange: (zoom) => this.onZoomChanged(zoom),
-                        onError: (error) => this.onError(error),
-                        onLoadingStateChange: (isLoading, progress) => this.onLoadingStateChanged(isLoading, progress)
+                    // Get the container element
+                    const container = document.getElementById('pdf-viewer');
+                    if (!container) {
+                        throw new Error('PDF viewer container not found');
+                    }
+
+                    // Initialize the PDF viewer engine using the correct API
+                    this.viewerEngine = window.createPdfViewerEngine(container, {
+                        apiBaseUrl: this.backendUrl,
+                        theme: 'light',
+                        autoInitialize: true
                     });
+
+                    // Setup event listeners for state changes
+                    this.setupEventListeners();
+
+                    // Initialize the engine
+                    await this.viewerEngine.initialize();
+
+                    // Load the PDF document
+                    await this.viewerEngine.initializeViewer(this.pdfId);
 
                     // Hide loading overlay
                     document.getElementById('loading-overlay').style.display = 'none';
                     this.isInitialized = true;
 
+                    console.log('✅ FlutterPdfBridge initialized successfully');
+
                 } catch (error) {
+                    console.error('❌ FlutterPdfBridge initialization failed:', error);
                     this.onError({ message: error.message, code: 'INIT_ERROR' });
                 }
             }
 
-            handleFlutterMessage(type, payload) {
-                if (!this.isInitialized) return;
+            setupEventListeners() {
+                // Listen to PDF engine events and forward to Flutter
+                this.viewerEngine.addEventListener('pdfLoaded', (data) => {
+                    this.onPdfLoaded(data);
+                });
 
-                switch (type) {
-                    case 'LOAD_PDF':
-                        this.viewer.loadPdf(payload.pdfId, payload.backendUrl);
-                        break;
-                    case 'SET_PAGE':
-                        this.viewer.setPage(payload.pageNumber);
-                        break;
-                    case 'SET_ZOOM':
-                        this.viewer.setZoom(payload.zoomLevel);
-                        break;
-                    case 'GET_CURRENT_PAGE':
-                        this.sendToFlutter('CURRENT_PAGE_RESPONSE', {
-                            currentPage: this.viewer.getCurrentPage()
-                        });
-                        break;
-                    case 'GET_PAGE_COUNT':
-                        this.sendToFlutter('PAGE_COUNT_RESPONSE', {
-                            pageCount: this.viewer.getPageCount()
-                        });
-                        break;
+                this.viewerEngine.addEventListener('pageChanged', (data) => {
+                    this.onPageChanged(data.currentPage, data.totalPages);
+                });
+
+                this.viewerEngine.addEventListener('zoomChanged', (data) => {
+                    this.onZoomChanged(data.zoomLevel);
+                });
+
+                this.viewerEngine.addEventListener('loadingChanged', (data) => {
+                    this.onLoadingStateChanged(data.isLoading, 0); // Progress not available from engine
+                });
+
+                this.viewerEngine.addEventListener('error', (data) => {
+                    this.onError({ message: data.message, code: 'ENGINE_ERROR' });
+                });
+            }
+
+            handleFlutterMessage(type, payload) {
+                if (!this.isInitialized || !this.viewerEngine) return;
+
+                try {
+                    switch (type) {
+                        case 'LOAD_PDF':
+                            this.viewerEngine.initializeViewer(payload.pdfId);
+                            break;
+                        case 'SET_PAGE':
+                            this.viewerEngine.setCurrentPage(payload.pageNumber);
+                            break;
+                        case 'SET_ZOOM':
+                            this.viewerEngine.setZoomLevel(payload.zoomLevel);
+                            break;
+                        case 'GET_CURRENT_PAGE':
+                            const currentState = this.viewerEngine.getCurrentState();
+                            this.sendToFlutter('CURRENT_PAGE_RESPONSE', {
+                                currentPage: currentState.currentPage
+                            });
+                            break;
+                        case 'GET_PAGE_COUNT':
+                            const state = this.viewerEngine.getCurrentState();
+                            this.sendToFlutter('PAGE_COUNT_RESPONSE', {
+                                pageCount: state.totalPages
+                            });
+                            break;
+                    }
+                } catch (error) {
+                    console.error('❌ Error handling Flutter message:', error);
+                    this.onError({ message: error.message, code: 'MESSAGE_HANDLER_ERROR' });
                 }
             }
 
@@ -248,11 +290,11 @@ class CdnManager {
                 window.parent.postMessage({ type, payload }, '*');
             }
 
-            onPdfLoaded() {
+            onPdfLoaded(data) {
                 this.sendToFlutter('PDF_LOADED', {
-                    pdfId: this.pdfId,
-                    pageCount: this.viewer.getPageCount(),
-                    title: this.viewer.getTitle()
+                    pdfId: data.pdfId,
+                    pageCount: data.totalPages,
+                    title: data.metadata?.title || 'PDF Document'
                 });
             }
 
@@ -270,7 +312,7 @@ class CdnManager {
             onLoadingStateChanged(isLoading, progress) {
                 this.sendToFlutter('LOADING_STATE_CHANGED', {
                     isLoading,
-                    progress
+                    progress: progress || 0
                 });
             }
 

@@ -148,6 +148,18 @@ class PdfPageStreamerWebPlugin {
         'postMessage',
         [message, '*'],
       );
+    } else {
+      // If no specific frame is registered, try to find and use any iframe on the page
+      final iframes = html.document.querySelectorAll('iframe');
+      for (final iframe in iframes) {
+        if (iframe is html.IFrameElement && iframe.contentWindow != null) {
+          js_util.callMethod(
+            iframe.contentWindow!,
+            'postMessage',
+            [message, '*'],
+          );
+        }
+      }
     }
   }
 
