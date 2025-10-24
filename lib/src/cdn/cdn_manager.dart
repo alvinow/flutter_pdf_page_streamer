@@ -166,7 +166,7 @@ class CdnManager {
             <div class="loading-spinner"></div>
             <p>Loading PDF Viewer...</p>
         </div>
-        <div id="pdf-viewer"></div>
+        <div id="pdf-viewer-app"></div>
     </div>
 
     <script>
@@ -196,33 +196,43 @@ class CdnManager {
 
             async initializePdfViewer() {
                 try {
-                    // Get the container element
-                    const container = document.getElementById('pdf-viewer');
-                    if (!container) {
-                        throw new Error('PDF viewer container not found');
+                    console.log('🔧 FlutterPdfBridge: Starting initialization...');
+
+                    // Wait for DOM to be ready and global functions to be available
+                    if (typeof window.initPdfViewer !== 'function') {
+                        throw new Error('window.initPdfViewer is not available');
                     }
 
-                    // Initialize the PDF viewer engine using the correct API
-                    this.viewerEngine = window.createPdfViewerEngine(container, {
-                        apiBaseUrl: this.backendUrl,
-                        theme: 'light',
-                        autoInitialize: true
-                    });
+                    console.log('✅ window.initPdfViewer found, calling with pdfId:', this.pdfId);
 
-                    // Setup event listeners for state changes
-                    this.setupEventListeners();
+                    // Use the global function that's exported by html_core
+                    await window.initPdfViewer(this.pdfId);
 
-                    // Initialize the engine
-                    await this.viewerEngine.initialize();
+                    // Get the viewer instance for our bridge
+                    this.viewerInstance = window.pdfViewerInstance;
+                    if (!this.viewerInstance) {
+                        throw new Error('PDF viewer instance not created');
+                    }
 
-                    // Load the PDF document
-                    await this.viewerEngine.initializeViewer(this.pdfId);
+                    console.log('✅ PDF viewer instance created:', this.viewerInstance);
 
                     // Hide loading overlay
-                    document.getElementById('loading-overlay').style.display = 'none';
-                    this.isInitialized = true;
+                    const loadingOverlay = document.getElementById('loading-overlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                    }
 
+                    this.isInitialized = true;
                     console.log('✅ FlutterPdfBridge initialized successfully');
+
+                    // Notify Flutter that PDF is loaded
+                    setTimeout(() => {
+                        this.onPdfLoaded({
+                            pdfId: this.pdfId,
+                            totalPages: this.getPageCount(),
+                            metadata: { title: 'PDF Document' }
+                        });
+                    }, 500);
 
                 } catch (error) {
                     console.error('❌ FlutterPdfBridge initialization failed:', error);
@@ -230,59 +240,78 @@ class CdnManager {
                 }
             }
 
-            setupEventListeners() {
-                // Listen to PDF engine events and forward to Flutter
-                this.viewerEngine.addEventListener('pdfLoaded', (data) => {
-                    this.onPdfLoaded(data);
-                });
-
-                this.viewerEngine.addEventListener('pageChanged', (data) => {
-                    this.onPageChanged(data.currentPage, data.totalPages);
-                });
-
-                this.viewerEngine.addEventListener('zoomChanged', (data) => {
-                    this.onZoomChanged(data.zoomLevel);
-                });
-
-                this.viewerEngine.addEventListener('loadingChanged', (data) => {
-                    this.onLoadingStateChanged(data.isLoading, 0); // Progress not available from engine
-                });
-
-                this.viewerEngine.addEventListener('error', (data) => {
-                    this.onError({ message: data.message, code: 'ENGINE_ERROR' });
-                });
+            getPageCount() {
+                try {
+                    // Get page count from PDF store or viewer instance
+                    if (window.getCurrentPdfState) {
+                        const state = window.getCurrentPdfState();
+                        return state.totalPages || 0;
+                    }
+                    return 0;
+                } catch (error) {
+                    console.warn('Could not get page count:', error);
+                    return 0;
+                }
             }
 
             handleFlutterMessage(type, payload) {
-                if (!this.isInitialized || !this.viewerEngine) return;
+                if (!this.isInitialized) return;
 
                 try {
+                    console.log('📨 Handling Flutter message:', type, payload);
+
                     switch (type) {
                         case 'LOAD_PDF':
-                            this.viewerEngine.initializeViewer(payload.pdfId);
+                            // Reload with new PDF
+                            window.initPdfViewer(payload.pdfId);
                             break;
                         case 'SET_PAGE':
-                            this.viewerEngine.setCurrentPage(payload.pageNumber);
+                            // Use store to set page if available
+                            if (window.getCurrentPdfState) {
+                                const store = window.getPdfStore();
+                                if (store) {
+                                    store.getState().setCurrentPage(payload.pageNumber);
+                                }
+                            }
                             break;
                         case 'SET_ZOOM':
-                            this.viewerEngine.setZoomLevel(payload.zoomLevel);
+                            // Use store to set zoom if available
+                            if (window.getCurrentPdfState) {
+                                const store = window.getPdfStore();
+                                if (store) {
+                                    store.getState().setZoomLevel(payload.zoomLevel);
+                                }
+                            }
                             break;
                         case 'GET_CURRENT_PAGE':
-                            const currentState = this.viewerEngine.getCurrentState();
+                            const currentPage = this.getCurrentPage();
                             this.sendToFlutter('CURRENT_PAGE_RESPONSE', {
-                                currentPage: currentState.currentPage
+                                currentPage: currentPage
                             });
                             break;
                         case 'GET_PAGE_COUNT':
-                            const state = this.viewerEngine.getCurrentState();
+                            const pageCount = this.getPageCount();
                             this.sendToFlutter('PAGE_COUNT_RESPONSE', {
-                                pageCount: state.totalPages
+                                pageCount: pageCount
                             });
                             break;
                     }
                 } catch (error) {
                     console.error('❌ Error handling Flutter message:', error);
                     this.onError({ message: error.message, code: 'MESSAGE_HANDLER_ERROR' });
+                }
+            }
+
+            getCurrentPage() {
+                try {
+                    if (window.getCurrentPdfState) {
+                        const state = window.getCurrentPdfState();
+                        return state.currentPage || 1;
+                    }
+                    return 1;
+                } catch (error) {
+                    console.warn('Could not get current page:', error);
+                    return 1;
                 }
             }
 
